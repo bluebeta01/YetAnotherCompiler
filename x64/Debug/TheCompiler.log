@@ -1,0 +1,4 @@
+﻿  ast.c
+C:\code\TheCompiler\src\ast.c(148,55): warning C4133: '=': incompatible types - from 'FuncTypeDescriptor *' to 'FuncTypeDescriptor *'
+C:\code\TheCompiler\src\ast.c(206,28): warning C4101: 'result': unreferenced local variable
+  TheCompiler.vcxproj -> C:\code\TheCompiler\x64\Debug\TheCompiler.exe
