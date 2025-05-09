@@ -39,11 +39,11 @@ typedef enum
 
 typedef struct
 {
+	const char *name;
+	uint64_t int_literal;
 	TokenType type;
 	int line;
 	int column;
-	const char *name;
-	uint64_t int_literal;
 	bool int_signed;
 } Token;
 
