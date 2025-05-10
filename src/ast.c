@@ -2,6 +2,29 @@
 #include "tokenize.h"
 #include <stdlib.h>
 
+typedef struct
+{
+	bool success;
+	Node *node;
+	int next_index;
+} AstBlockResult;
+AstBlockResult ast_block(Vector *tokens, int index);
+
+//Determins if the token represents a value
+bool token_is_value(Token *token)
+{
+	switch (token->type)
+	{
+	case TOKEN_INT:
+	case TOKEN_IDENTIFIER:
+	case TOKEN_STR_LITERAL:
+	case TOKEN_TRUE:
+	case TOKEN_FALSE:
+		return true;
+	}
+	return false;
+}
+
 typedef struct 
 {
 	bool success;
@@ -16,6 +39,10 @@ static TypeDescriptorParseResult parse_type_descriptor(Vector *tokens, int index
 
 	switch (token->type)
 	{
+	case TOKEN_BOOL:
+		result.type_descriptor.base_type = BASE_TYPE_BOOL;
+		index++;
+		break;
 	case TOKEN_U16:
 		result.type_descriptor.base_type = BASE_TYPE_U16;
 		index++;
@@ -153,23 +180,37 @@ int node_precedence(Node *node)
 
 	switch (node->type)
 	{
+	case NODE_COMMA:
+		return 0;
 	case NODE_ASSIGN:
-		return 50;
+		return 1;
+	case NODE_LOGIC_OR:
+		return 3;
+	case NODE_LOGIC_AND:
+		return 4;
+	case NODE_CMP_EQ:
+	case NODE_CMP_NEQ:
+		return 8;
+	case NODE_CMP_LE:
+	case NODE_CMP_GE:
+	case NODE_CMP_LT:
+	case NODE_CMP_GT:
+		return 9;
 	case NODE_ADD:
-		return 100;
 	case NODE_SUBTRACT:
-		return 100;
+		return 11;
 	case NODE_MULTIPLY:
-		return 200;
-	case NODE_VAR_DECL:
-		return 300;
+		return 12;
 	case NODE_REF:
-		return 300;
 	case NODE_DEREF:
-		return 300;
+	case NODE_CAST:
+		return 13;
+	case NODE_FUNC_CALL:
+		return 14;
 	case NODE_VAR:
-		return 1000;
 	case NODE_NUMBER:
+	case NODE_STRING:
+	case NODE_VAR_DECL:
 		return 1000;
 
 	}
@@ -236,6 +277,164 @@ ParseExpressionResult parse_expression(Vector *tokens, int index)
 			continue;
 		}
 
+		//Check for a cast
+		if (token->type == TOKEN_OPEN_PAREN)
+		{
+			int cast_index = index + 1;
+			if (cast_index >= tokens->size) goto not_cast;
+			TypeDescriptorParseResult type_result = parse_type_descriptor(tokens, cast_index);
+			if (!type_result.success) goto not_cast;
+			cast_index = type_result.next_index;
+			if (cast_index >= tokens->size) goto not_cast;
+
+			token = vec_at(Token*, tokens, cast_index);
+			if (token->type != TOKEN_CLOSE_PAREN) goto not_cast;
+			cast_index++;
+			if (cast_index >= tokens->size) goto not_cast;
+
+			token = vec_at(Token*, tokens, cast_index);
+			if (token->type != TOKEN_OPEN_PAREN && !token_is_value(token)) goto not_cast;
+
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CAST };
+			node->cast.cast_type = type_result.type_descriptor;
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index = cast_index;
+			continue;
+		}
+		not_cast:
+
+		if (token->type == TOKEN_STR_LITERAL)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_STRING };
+			node->string.literal_token = token;
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CONTINUE)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CONTINUE };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_TRUE)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_TRUE };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_FALSE)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_FALSE };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_NULL)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_NULL };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CMP_EQ)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CMP_EQ };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CMP_NEQ)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CMP_NEQ };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CMP_LT)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CMP_LT };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CMP_GT)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CMP_GT };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CMP_LE)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CMP_LE };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_CMP_GE)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_CMP_GE };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_LOGIC_AND)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_LOGIC_AND };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
+		if (token->type == TOKEN_LOGIC_OR)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_LOGIC_OR };
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			index++;
+			if (index >= tokens->size) goto err_cleanup;
+			continue;
+		}
+
 		if (token->type == TOKEN_PLUS)
 		{
 			Node *node = malloc(sizeof(Node));
@@ -274,6 +473,67 @@ ParseExpressionResult parse_expression(Vector *tokens, int index)
 			index++;
 			if (index >= tokens->size) goto err_cleanup;
 			continue;
+		}
+
+		//Check for function call
+		if (token->type == TOKEN_IDENTIFIER &&
+			index + 1 <= tokens->size &&
+			vec_at(Token*, tokens, index + 1)->type == TOKEN_OPEN_PAREN)
+		{
+			index += 2;
+			if (index >= tokens->size) goto err_cleanup;
+			Token *name_token = token;
+
+			token = vec_at(Token*, tokens, index);
+			if (token->type == TOKEN_CLOSE_PAREN)
+			{
+				index++;
+				if (index >= tokens->size) goto err_cleanup;
+				Node *node = malloc(sizeof(Node));
+				*node = (Node){ .type = NODE_FUNC_CALL, .paren = true };
+				node->func_call.func_name_token = name_token;
+				tree = (tree == NULL ? node : append_tree(tree, node));
+				continue;
+			}
+
+			Node *param_tree = NULL;
+
+			while (1)
+			{
+				ParseExpressionResult recurse_result = parse_expression(tokens, index);
+				if (!recurse_result.success) goto err_param_cleanup;
+				if (!recurse_result.node) goto err_param_cleanup;
+				param_tree = (param_tree == NULL ? recurse_result.node : append_tree(param_tree, recurse_result.node));
+
+				index = recurse_result.next_index;
+				if (index >= tokens->size) goto err_param_cleanup;
+				token = vec_at(Token*, tokens, index);
+
+				if (token->type == TOKEN_COMMA)
+				{
+					Node *node = malloc(sizeof(Node));
+					*node = (Node){ .type = NODE_COMMA };
+					param_tree = (param_tree == NULL ? node : append_tree(param_tree, node));
+					index++;
+					if (index >= tokens->size) goto err_param_cleanup;
+					continue;
+				}
+
+				break;
+			}
+
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_FUNC_CALL, .paren = true };
+			node->func_call.func_name_token = name_token;
+			node->left = param_tree;
+			param_tree->up = node;
+			tree = (tree == NULL ? node : append_tree(tree, node));
+			continue;
+
+			err_param_cleanup:
+			if (param_tree)
+				free_tree(param_tree);
+			goto err_cleanup;
 		}
 
 		if (token->type == TOKEN_IDENTIFIER)
@@ -339,6 +599,11 @@ ParseExpressionResult parse_expression(Vector *tokens, int index)
 			break;
 		}
 
+		if (token->type == TOKEN_COMMA)
+		{
+			break;
+		}
+
 		if (token->type == TOKEN_SEMICOLON)
 		{
 			index++;
@@ -358,26 +623,282 @@ ParseExpressionResult parse_expression(Vector *tokens, int index)
 typedef struct
 {
 	bool success;
-} AstBlockResult;
+	Node *node;
+	int next_index;
+} AstReturnStatement;
+
+AstReturnStatement parse_return_statement(Vector *tokens, int index)
+{
+	Token *token = vec_at(Token*, tokens, index);
+	if (token->type != TOKEN_RETURN) return (AstReturnStatement){ .success = false };
+	index++;
+	if (index >= tokens->size) return (AstReturnStatement){ .success = false };
+
+	ParseExpressionResult exp_result = parse_expression(tokens, index);
+	if (!exp_result.success) return (AstReturnStatement){ .success = false };
+
+	Node *node = malloc(sizeof(Node));
+	*node = (Node){ .type = NODE_RETURN };
+	node->left = exp_result.node;
+	exp_result.node->up = node;
+
+	return (AstReturnStatement){ .success = true, .node = node, .next_index = exp_result.next_index };
+}
+
+typedef struct
+{
+	bool success;
+	Node *node;
+	int next_index;
+} AstIfResult;
+
+AstIfResult parse_if_statement(Vector *tokens, int index)
+{
+	Node *exp_node = NULL;
+	Node *if_body_node = NULL;
+	Node *else_body_node = NULL;
+
+	Token *token = vec_at(Token*, tokens, index);
+	if (token->type != TOKEN_IF) return (AstIfResult){ .success = false };
+	index++;
+	if (index >= tokens->size) return (AstIfResult){ .success = false };
+	token = vec_at(Token*, tokens, index);
+
+	if (token->type != TOKEN_OPEN_PAREN) return (AstIfResult){ .success = false };
+	index++;
+	if (index >= tokens->size) return (AstIfResult){ .success = false };
+	token = vec_at(Token*, tokens, index);
+
+	ParseExpressionResult exp_result = parse_expression(tokens, index);
+	if (!exp_result.success) goto err_cleanup;
+	exp_node = exp_result.node;
+	index = exp_result.next_index;
+	if (index >= tokens->size) goto err_cleanup;
+
+	AstBlockResult if_body_result = ast_block(tokens, index);
+	if (!if_body_result.success) goto err_cleanup;
+	if_body_node = if_body_result.node;
+	index = if_body_result.next_index;
+	if (index >= tokens->size) goto err_cleanup;
+
+	token = vec_at(Token*, tokens, index);
+	if (token->type != TOKEN_ELSE) goto place_node;
+	index++;
+	if (index >= tokens->size) goto err_cleanup;
+	AstBlockResult else_body_result = ast_block(tokens, index);
+	if (!else_body_result.success) goto err_cleanup;
+	else_body_node = else_body_result.node;
+	index = else_body_result.next_index;
+	if (index >= tokens->size) goto err_cleanup;
+
+	place_node:
+	Node *if_node = malloc(sizeof(Node));
+	*if_node = (Node){ .type = NODE_IF };
+	if_node->left = exp_node;
+	exp_node->up = if_node;
+
+	Node *branch_node = malloc(sizeof(Node));
+	*branch_node = (Node){ .type = NODE_BRANCH };
+	if_node->right = branch_node;
+	branch_node->up = if_node;
+	branch_node->left = if_body_node;
+	if_body_node->up = branch_node;
+	if (else_body_node)
+	{
+		else_body_node->up = branch_node;
+		branch_node->right = else_body_node;
+	}
+
+	return (AstIfResult) { .success = true, .node = if_node, .next_index = index };
+
+	err_cleanup:
+	if (exp_node)
+		free_tree(exp_node);
+	if (if_body_node)
+		free_tree(if_body_node);
+	if (else_body_node)
+		free_tree(else_body_node);
+	return (AstIfResult){ .success = false };
+}
+
+typedef struct
+{
+	bool success;
+	Node *node;
+	int next_index;
+} AstWhileResult;
+
+AstWhileResult parse_while_statement(Vector *tokens, int index)
+{
+	Node *exp_node = NULL;
+	Node *while_body = NULL;
+
+	Token *token = vec_at(Token*, tokens, index);
+	if (token->type != TOKEN_WHILE) return (AstWhileResult){ .success = false };
+	index++;
+	if (index >= tokens->size) return (AstWhileResult){ .success = false };
+	token = vec_at(Token*, tokens, index);
+
+	if (token->type != TOKEN_OPEN_PAREN) return (AstWhileResult){ .success = false };
+	index++;
+	if (index >= tokens->size) return (AstWhileResult){ .success = false };
+	token = vec_at(Token*, tokens, index);
+
+	ParseExpressionResult exp_result = parse_expression(tokens, index);
+	if (!exp_result.success) goto err_cleanup;
+	exp_node = exp_result.node;
+	index = exp_result.next_index;
+	if (index >= tokens->size) goto err_cleanup;
+
+	AstBlockResult while_body_result = ast_block(tokens, index);
+	if (!while_body_result.success) goto err_cleanup;
+	while_body = while_body_result.node;
+	index = while_body_result.next_index;
+	if (index >= tokens->size) goto err_cleanup;
+
+	Node *while_node = malloc(sizeof(Node));
+	*while_node = (Node){ .type = NODE_WHILE };
+	while_node->left = exp_node;
+	exp_node->up = while_node;
+	while_node->right = while_body;
+	while_body->up = while_node;
+	return (AstWhileResult) { .success = true, .node = while_node, .next_index = index };
+
+	err_cleanup:
+	if (exp_node)
+		free_tree(exp_node);
+	if (while_body)
+		free_tree(while_body);
+	return (AstWhileResult){0};
+}
 
 AstBlockResult ast_block(Vector *tokens, int index)
 {
-	ParseExpressionResult result = parse_expression(tokens, index);
+	AstBlockResult block_result = {0};
+
+	while (vec_at(Token*, tokens, index)->type == TOKEN_OPEN_BRACE)
+	{
+		index++;
+		if (index >= tokens->size) goto err_cleanup;
+	}
+
+	while (1)
+	{
+		Node *placed_node = NULL;
+		int next_index = 0;
+
+		AstReturnStatement return_result = parse_return_statement(tokens, index);
+		if (return_result.success)
+		{
+			placed_node = return_result.node;
+			next_index = return_result.next_index;
+			goto place_node;
+		}
+
+		AstIfResult if_result = parse_if_statement(tokens, index);
+		if (if_result.success)
+		{
+			placed_node = if_result.node;
+			next_index = if_result.next_index;
+			goto place_node;
+		}
+
+		AstWhileResult while_result = parse_while_statement(tokens, index);
+		if (while_result.success)
+		{
+			placed_node = while_result.node;
+			next_index = while_result.next_index;
+			goto place_node;
+		}
+
+		if (vec_at(Token*, tokens, index)->type == TOKEN_BREAK)
+		{
+			placed_node = malloc(sizeof(Node));
+			*placed_node = (Node) { .type = NODE_BREAK };
+			next_index = index + 1;
+			goto place_node;
+		}
+
+		ParseExpressionResult exp_result = parse_expression(tokens, index);
+		placed_node = exp_result.node;
+		next_index = exp_result.next_index;
+		if (!exp_result.success) goto err_cleanup;
+
+		place_node:
+		if (!block_result.node)
+		{
+			block_result.node = placed_node;
+			goto node_placed;
+		}
+
+		if (block_result.node->type != NODE_EXP_SEQ || block_result.node->right)
+		{
+			Node *node = malloc(sizeof(Node));
+			*node = (Node){ .type = NODE_EXP_SEQ };
+			node->left = block_result.node;
+			block_result.node->up = node;
+			block_result.node = node;
+			node->right = placed_node;
+			placed_node->up = node;
+			goto node_placed;
+		}
+
+		block_result.node->right = placed_node;
+		placed_node->up = block_result.node;
+
+		node_placed:
+		index = next_index;
+		if (index >= tokens->size) goto err_cleanup;
+		Token *token = vec_at(Token*, tokens, index);
+
+		if (token->type == TOKEN_CLOSE_BRACE)
+		{
+			block_result.success = true;
+			block_result.next_index = index + 1;
+			return block_result;
+		}
+	}
+
+	err_cleanup:
+	if (block_result.node)
+		free_tree(block_result.node);
+	return (AstBlockResult){ .success = false };
+}
+
+typedef struct
+{
+	bool success;
+	Node *node;
+	int next_index;
+} AstFuncResult;
+
+AstFuncResult ast_function(Vector *tokens, int index)
+{
+	FunctionParseResult func_result = parse_function(tokens, 0);
+	if (!func_result.success) return (AstFuncResult){ .success = false };
+	index = func_result.next_index;
+	if (index >= tokens->size) return (AstFuncResult){ .success = false };
+
+	Token *token = vec_at(Token*, tokens, index);
+	if (token->type != TOKEN_OPEN_BRACE) return (AstFuncResult){ .success = false };
+
+	index++;
+	if (index >= tokens->size) return (AstFuncResult){ .success = false };
+
+	AstBlockResult block_result = ast_block(tokens, index);
+	if (!block_result.success) return (AstFuncResult){ .success = false };
+
+	Node *node = malloc(sizeof(Node));
+	*node = (Node){ .type = NODE_FUNCTION };
+	node->function.name_token = token;
+	node->function.func_descriptor = func_result.func_descriptor;
+	node->left = block_result.node;
+	block_result.node->up = node;
+
+	return (AstFuncResult){ .success = true, .node = node, .next_index = block_result.next_index };
 }
 
 bool ast_tokens(Vector *tokens)
 {
-	FunctionParseResult func_result = parse_function(tokens, 0);
-	if (!func_result.success) return false;
-	int index = func_result.next_index;
-	if (index >= tokens->size) return false;
-
-	Token *token = vec_at(Token*, tokens, index);
-	if (token->type != TOKEN_OPEN_BRACE) return false;
-
-	index++;
-	if (index >= tokens->size) return false;
-
-	AstBlockResult block_result = ast_block(tokens, index);
-	return block_result.success;
+	AstFuncResult result = ast_function(tokens, 0);
 }

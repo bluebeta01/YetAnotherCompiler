@@ -35,6 +35,24 @@ static TokenLookupResult token_type_lookup(const char *search_str, TokenType pre
 {
 	int length = 0;
 
+	length = is_word_token(search_str, "continue");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CONTINUE, .token_length = length };
+	length = is_word_token(search_str, "null");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_NULL, .token_length = length };
+	length = is_word_token(search_str, "false");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_FALSE, .token_length = length };
+	length = is_word_token(search_str, "true");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_TRUE, .token_length = length };
+	length = is_word_token(search_str, "break");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_BREAK, .token_length = length };
+	length = is_word_token(search_str, "while");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_WHILE, .token_length = length };
+	length = is_word_token(search_str, "else");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_ELSE, .token_length = length };
+	length = is_word_token(search_str, "if");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_IF, .token_length = length };
+	length = is_word_token(search_str, "return");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_RETURN, .token_length = length };
 	length = is_word_token(search_str, "void");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_VOID, .token_length = length };
 	length = is_word_token(search_str, "for");
@@ -46,12 +64,26 @@ static TokenLookupResult token_type_lookup(const char *search_str, TokenType pre
 	length = is_word_token(search_str, "@array");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_ARRAY_DECL, .token_length = length };
 
+	length = starts_with(search_str, "||");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_LOGIC_OR, .token_length = length };
+	length = starts_with(search_str, "&&");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_LOGIC_AND, .token_length = length };
+	length = starts_with(search_str, ">=");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_GE, .token_length = length };
+	length = starts_with(search_str, "<=");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_LE, .token_length = length };
+	length = starts_with(search_str, "!=");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_NEQ, .token_length = length };
+	length = starts_with(search_str, "==");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_EQ, .token_length = length };
 	length = starts_with(search_str, "->");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_ARROW, .token_length = length };
 	length = starts_with(search_str, "s16");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_S16, .token_length = length };
 	length = starts_with(search_str, "u16");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_U16, .token_length = length };
+	length = starts_with(search_str, "bool");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_BOOL, .token_length = length };
 	length = starts_with(search_str, "+");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_PLUS, .token_length = length };
 	length = starts_with(search_str, "-");
@@ -74,9 +106,9 @@ static TokenLookupResult token_type_lookup(const char *search_str, TokenType pre
 	length = starts_with(search_str, "=");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_EQUAL, .token_length = length };
 	length = starts_with(search_str, "<");
-	if (length > 0) return (TokenLookupResult){ .type = TOKEN_LESS_THAN, .token_length = length };
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_LT, .token_length = length };
 	length = starts_with(search_str, ">");
-	if (length > 0) return (TokenLookupResult){ .type = TOKEN_GREATER_THAN, .token_length = length };
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_GT, .token_length = length };
 	length = starts_with(search_str, "&");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_AMP, .token_length = length };
 	length = starts_with(search_str, "[");
@@ -163,6 +195,31 @@ static ParseIdentifierResult parse_identifier(const char *input)
 	return result;
 }
 
+typedef struct 
+{
+	bool success;
+	int str_length;
+} ParseStrLiteralResult;
+
+static ParseStrLiteralResult parse_str_literal(const char *input)
+{
+	const char *start = input;
+	if (*input != '"') return (ParseStrLiteralResult){0};
+	input++;
+	if (*input == 0) return (ParseStrLiteralResult){0};
+
+	while (1)
+	{
+		if (*input == '"' && *(input - 1) != '\\')
+			return (ParseStrLiteralResult) { .success = true, .str_length = input - start - 1 };
+		if (*input == 0)
+			return (ParseStrLiteralResult){0};
+		input++;
+	}
+
+	return (ParseStrLiteralResult){0};
+}
+
 static bool take_token(const char *filedata, Vector *tokens)
 {
 	TokenType previous_type = TOKEN_INVALID;
@@ -193,6 +250,19 @@ static bool take_token(const char *filedata, Vector *tokens)
 			col += strlen(token->name);
 			vec_push(Token*, tokens, &token);
 			filedata += result.token_length;
+			continue;
+		}
+
+		ParseStrLiteralResult str_result = parse_str_literal(filedata);
+		if (str_result.success)
+		{
+			previous_type = TOKEN_STR_LITERAL;
+			Token *token = create_token(filedata + 1, str_result.str_length, TOKEN_STR_LITERAL, 0, false);
+			token->line = line;
+			token->column = col;
+			col += strlen(token->name);
+			vec_push(Token*, tokens, &token);
+			filedata += str_result.str_length + 2;
 			continue;
 		}
 
