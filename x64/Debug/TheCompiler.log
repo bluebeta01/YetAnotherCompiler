@@ -1,4 +1,5 @@
 ﻿  ast.c
-C:\code\TheCompiler\src\ast.c(904): warning C4716: 'ast_tokens': must return a value
-C:\code\TheCompiler\src\ast.c(903,16): warning C4101: 'result': unreferenced local variable
+C:\code\TheCompiler\src\ast.c(229,46): warning C4554: '|': check operator precedence for possible error; use parentheses to clarify precedence
+C:\code\TheCompiler\src\ast.c(906,16): warning C4101: 'result': unreferenced local variable
+C:\code\TheCompiler\src\ast.c(907): warning C4716: 'ast_tokens': must return a value
   TheCompiler.vcxproj -> C:\code\TheCompiler\x64\Debug\TheCompiler.exe

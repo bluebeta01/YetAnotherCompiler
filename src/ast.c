@@ -223,10 +223,13 @@ Node *append_tree(Node *tree, Node *leaf)
 	int leaf_precedence = node_precedence(leaf);
 
 	Node *current_node = tree;
-	while (node_precedence(current_node) < leaf_precedence && current_node->right && !current_node->paren)
+	int current_precedence = 0;
+	while ((current_precedence = node_precedence(current_node)) < leaf_precedence && current_node->right && !current_node->paren ||
+			//Precedence level 1 operators are evaluated right to left (eg. =, +=, *=, etc.)
+			current_precedence | leaf_precedence == 1 && current_node->right)
 		current_node = current_node->right;
 
-	if ((node_precedence(current_node) < leaf_precedence && !current_node->paren) || leaf->paren) 
+	if ((current_precedence < leaf_precedence && !current_node->paren) || leaf->paren) 
 	{
 		if (!current_node->left)
 			current_node->left = leaf;
