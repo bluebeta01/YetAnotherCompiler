@@ -126,5 +126,6 @@ struct Node
 typedef struct Node Node;
 
 extern bool ast_tokens(Vector *tokens);
+extern int type_descriptor_size(TypeDescriptor *descriptor);
 
 #endif

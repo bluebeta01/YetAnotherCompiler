@@ -3,6 +3,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+int type_descriptor_size(TypeDescriptor *descriptor)
+{
+	if (descriptor->ptr_count) return 1;
+
+	switch (descriptor->base_type)
+	{
+	case BASE_TYPE_VOID:
+		return 0;
+	case BASE_TYPE_U16:
+	case BASE_TYPE_S16:
+	case BASE_TYPE_BOOL:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
 void pretty_print_tree(Node *node, FILE *file, int depth)
 {
 	for (int i = 0; i < depth; i++)
