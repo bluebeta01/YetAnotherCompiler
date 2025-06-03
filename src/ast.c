@@ -1,6 +1,123 @@
 #include "ast.h"
 #include "tokenize.h"
 #include <stdlib.h>
+#include <stdio.h>
+
+void pretty_print_tree(Node *node, FILE *file, int depth)
+{
+	for (int i = 0; i < depth; i++)
+	{
+		fputc('-', file);
+	}
+	switch (node->type)
+	{
+	case NODE_VAR_DECL:
+		fprintf(file, "DECL (%s)", node->var_decl.var_name_token->name);
+		break;
+	case NODE_ADD:
+		fputs("ADD", file);
+		break;
+	case NODE_SUBTRACT:
+		fputs("SUB", file);
+		break;
+	case NODE_MULTIPLY:
+		fputs("MUL", file);
+		break;
+	case NODE_DEREF:
+		fputs("DEREF", file);
+		break;
+	case NODE_REF:
+		fputs("REF", file);
+		break;
+	case NODE_ASSIGN:
+		fputs("ASSIGN", file);
+		break;
+	case NODE_VAR:
+		fprintf(file, "VAR (%s)", node->variable.var_name_token->name);
+		break;
+	case NODE_NUMBER:
+		fprintf(file, "NUMBER (%s)", node->number.literal_token->name);
+		break;
+	case NODE_FUNC_CALL:
+		fprintf(file, "CALL (%s)", node->func_call.func_name_token->name);
+		break;
+	case NODE_COMMA:
+		fputs("COMMA", file);
+		break;
+	case NODE_FUNCTION:
+		fprintf(file, "FUNC (%s)", node->function.name_token->name);
+		break;
+	case NODE_EXP_SEQ:
+		fputs("SEQ", file);
+		break;
+	case NODE_BRANCH:
+		fputs("BRANCH", file);
+		break;
+	case NODE_IF:
+		fputs("IF", file);
+		break;
+	case NODE_RETURN:
+		fputs("RETURN", file);
+		break;
+	case NODE_LOGIC_AND:
+		fputs("LOGIC_AND", file);
+		break;
+	case NODE_LOGIC_OR:
+		fputs("LOGIC_OR", file);
+		break;
+	case NODE_CMP_EQ:
+		fputs("CMP_EQ", file);
+		break;
+	case NODE_CMP_NEQ:
+		fputs("CMP_NEQ", file);
+		break;
+	case NODE_CMP_LT:
+		fputs("CMP_LT", file);
+		break;
+	case NODE_CMP_GT:
+		fputs("CMP_GT", file);
+		break;
+	case NODE_CMP_LE:
+		fputs("CMP_LE", file);
+		break;
+	case NODE_CMP_GE:
+		fputs("CMP_GE", file);
+		break;
+	case NODE_WHILE:
+		fputs("WHILE", file);
+		break;
+	case NODE_BREAK:
+		fputs("BREAK", file);
+		break;
+	case NODE_TRUE:
+		fputs("TRUE", file);
+		break;
+	case NODE_FALSE:
+		fputs("FALSE", file);
+		break;
+	case NODE_NULL:
+		fputs("NULL", file);
+		break;
+	case NODE_CONTINUE:
+		fputs("CONTINUE", file);
+		break;
+	case NODE_STRING:
+		fputs("STRING", file);
+		break;
+	case NODE_CAST:
+		fputs("CAST", file);
+		break;
+	default:
+		fputs("ERROR UNKNOWN NODE TYPE", file);
+		break;
+	}
+	fputs("\n", file);
+
+	if (node->left)
+		pretty_print_tree(node->left, file, depth + 1);
+	if (node->right)
+		pretty_print_tree(node->right, file, depth + 1);
+}
 
 typedef struct
 {
@@ -893,7 +1010,7 @@ AstFuncResult ast_function(Vector *tokens, int index)
 
 	Node *node = malloc(sizeof(Node));
 	*node = (Node){ .type = NODE_FUNCTION };
-	node->function.name_token = token;
+	node->function.name_token = func_result.func_descriptor.name_token;
 	node->function.func_descriptor = func_result.func_descriptor;
 	node->left = block_result.node;
 	block_result.node->up = node;
@@ -904,4 +1021,13 @@ AstFuncResult ast_function(Vector *tokens, int index)
 bool ast_tokens(Vector *tokens)
 {
 	AstFuncResult result = ast_function(tokens, 0);
+
+	if (result.success)
+	{
+		pretty_print_tree(result.node, stdout, 0);
+	}
+	else
+	{
+		puts("Failed to parse function");
+	}
 }
