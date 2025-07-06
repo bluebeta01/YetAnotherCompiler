@@ -31,6 +31,7 @@ enum IrInstType
 	IRINST_MUL,
 	IRINST_COPY,
 	IRINST_EXTEND,
+	IRINST_TRUNC,
 };
 
 struct IrInstDefine
@@ -61,6 +62,11 @@ struct IrInstExtend
 	bool sign_extend;
 };
 
+struct IrInstTrunc
+{
+	int src_var;
+};
+
 struct IrInst
 {
 	enum IrInstType type;
@@ -75,6 +81,7 @@ struct IrInst
 		struct IrInstMul mul;
 		struct IrInstCopy copy;
 		struct IrInstExtend extend;
+		struct IrInstTrunc trunc;
 	};
 };
 
@@ -101,5 +108,6 @@ extern struct IrInst *ir_push_add(struct IrContext *ctx, int lvar, int rvar, int
 extern struct IrInst *ir_push_mul(struct IrContext *ctx, int lvar, int rvar, int dst_var);
 extern struct IrInst *ir_push_copy(struct IrContext *ctx, int src_var, int dst_var);
 extern struct IrInst *ir_push_extend(struct IrContext *ctx, int src_var, enum IrBaseType dst_type, bool sign_extend);
+extern struct IrInst *ir_push_trunc(struct IrContext *ctx, int src_var, enum IrBaseType dst_type);
 
 #endif

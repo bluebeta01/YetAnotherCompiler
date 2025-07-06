@@ -156,6 +156,31 @@ struct IrInst *ir_push_mul(struct IrContext *ctx, int lvar, int rvar, int dst_va
 	return inst;
 }
 
+struct IrInst *ir_push_trunc(struct IrContext *ctx, int src_var, enum IrBaseType dst_type)
+{
+	//TODO: Check that src exists
+	struct IrVar *src_var_definition = find_var(ctx, src_var);
+	assert(src_var_definition != NULL);
+	int dst_var = ctx->next_var_number++;
+
+	struct IrInst *inst = malloc(sizeof(struct IrInst));
+	*inst = (struct IrInst)
+	{
+		.type = IRINST_TRUNC,
+		.dst_var = dst_var,
+		.dst_type = dst_type,
+		.trunc = (struct IrInstTrunc)
+		{
+			.src_var = src_var
+		}
+	};
+
+	ir_push_inst(ctx, inst);
+
+	return inst;
+
+}
+
 struct IrInst *ir_push_extend(struct IrContext *ctx, int src_var, enum IrBaseType dst_type, bool sign_extend)
 {
 	//TODO: Check that src exists
@@ -253,6 +278,9 @@ void ir_print_context(struct IrContext *ctx)
 			break;
 		case IRINST_COPY:
 			printf("v%i = v%i\n", inst->dst_var, inst->copy.src_var);
+			break;
+		case IRINST_TRUNC:
+			printf("v%i %s = trunc v%i\n", inst->dst_var, get_base_type_str(inst->dst_type.base_type), inst->trunc.src_var);
 			break;
 		case IRINST_EXTEND:
 			if (inst->extend.sign_extend)

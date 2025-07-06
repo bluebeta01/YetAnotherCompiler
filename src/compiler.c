@@ -438,12 +438,64 @@ void compile_assign(struct CompilerContext *ctx, struct TypedValue *v1, struct T
 	struct IrInst *copy = ir_push_copy(ctx, v2->ir_var_number, v1->ir_var_number);
 }
 
-void compile_cast(struct CompilerContext *ctx, struct TypedValue *value, struct TypeDescriptor *td, Token *current_token)
+void compile_cast(struct CompilerContext *ctx, Token *current_token)
 {
+	struct TypedValue value = pop_value();
+	struct TypeDescriptor td = pop_value().type;
+
+	if (value.type.ptr_count > 0 && td.ptr_count > 0)
+	{
+		value.type.ptr_count = td.ptr_count;
+		value.type.base_type = td.base_type;
+		return true;
+	}
+
 	struct TypeInfo value_info = {0};
 	struct TypeInfo td_info = {0};
-	type_info(&value->type, &value_info);
-	type_info(td, &td_info);
+	type_info(&value.type, &value_info);
+	type_info(&td, &td_info);
+
+	if (!value_info.is_algebraic || !td_info.is_algebraic)
+	{
+		set_compiler_error("Cannot case non-algebraic types", current_token);
+		print_compiler_error();
+		return;
+	}
+
+	if (value.location == VAL_LOC_TOKEN)
+	{
+		//TODO: We should check that the integer literal in the token can actually be cast to a ptr without its value changing
+		value.type.base_type = td.base_type;
+		value.type.ptr_count = td.ptr_count;
+		push_value(&value);
+		return;
+	}
+
+	if (value_info.width_bytes == td_info.width_bytes)
+	{
+		value.type.base_type = td.base_type;
+		value.type.ptr_count = td.ptr_count;
+		push_value(&value);
+		return;
+	}
+
+	enum IrBaseType new_ir_type =  convert_type_descriptor(&td);
+	if (td_info.width_bytes < value_info.width_bytes)
+	{
+		struct IrInst *trunc = ir_push_trunc(ctx, value.ir_var_number, new_ir_type);
+		value.ir_var_number = trunc->dst_var;
+		value.type.base_type = td.base_type;
+		value.type.ptr_count = td.ptr_count;
+		push_value(&value);
+		return;
+	}
+
+	struct IrInst *extend = ir_push_extend(ctx, value.ir_var_number, new_ir_type, value_info.is_signed);
+	value.ir_var_number = extend->dst_var;
+	value.type.base_type = td.base_type;
+	value.type.ptr_count = td.ptr_count;
+	push_value(&value);
+	return;
 }
 
 bool evaluate(struct CompilerContext *ctx, Token *current_token)
@@ -472,9 +524,7 @@ bool evaluate(struct CompilerContext *ctx, Token *current_token)
 	}
 	if (operator == LANG_OP_CAST)
 	{
-		struct TypedValue v2 = pop_value();
-		struct TypedValue v1 = pop_value();
-		compile_cast(ctx, &v2, &v1->type, current_token);
+		compile_cast(ctx, current_token);
 		return true;
 	}
 	return false;
