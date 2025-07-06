@@ -271,13 +271,13 @@ void ir_print_context(struct IrContext *ctx)
 			printf("v%i %s = %lli\n", inst->dst_var, get_base_type_str(inst->dst_type.base_type), inst->define.value);
 			break;
 		case IRINST_ADD:
-			printf("v%i = add v%i v%i\n", inst->dst_var, inst->add.lvar, inst->add.rvar);
+			printf("v%i %s = add v%i v%i\n", inst->dst_var, get_base_type_str(inst->dst_type.base_type), inst->add.lvar, inst->add.rvar);
 			break;
 		case IRINST_MUL:
-			printf("v%i = mul v%i v%i\n", inst->dst_var, inst->mul.lvar, inst->mul.rvar);
+			printf("v%i %s = mul v%i v%i\n", inst->dst_var, get_base_type_str(inst->dst_type.base_type), inst->mul.lvar, inst->mul.rvar);
 			break;
 		case IRINST_COPY:
-			printf("v%i = v%i\n", inst->dst_var, inst->copy.src_var);
+			printf("v%i %s = v%i\n", inst->dst_var, get_base_type_str(inst->dst_type.base_type), inst->copy.src_var);
 			break;
 		case IRINST_TRUNC:
 			printf("v%i %s = trunc v%i\n", inst->dst_var, get_base_type_str(inst->dst_type.base_type), inst->trunc.src_var);

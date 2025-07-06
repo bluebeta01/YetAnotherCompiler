@@ -21,8 +21,8 @@ int operator_precedence(enum LangOperator operator)
 	case LANG_OP_MUL:
 		return 3;
 	case LANG_OP_REF:
-		return 2;
 	case LANG_OP_DEREF:
+	case LANG_OP_CAST:
 		return 2;
 	case LANG_OP_ASSIGN:
 		return 14;

@@ -1,7 +1,6 @@
 #ifndef LANGUAGE_H
 #define LANGUAGE_H
 #include "tokenize.h"
-#define PTR_WIDTH_BYTES 2
 
 enum LangBaseType
 {

@@ -161,7 +161,7 @@ enum LangBaseType int_literal_base_type(Token *token)
 
 enum IrBaseType convert_type_descriptor(struct TypeDescriptor *descriptor)
 {
-	if (descriptor->ptr_count > 0) return IRTYPE_PTR;
+	if (descriptor->ptr_count > 0) return PTR_IR_TYPE;
 	if (descriptor->base_type == LANG_TYPE_U8 || descriptor->base_type == LANG_TYPE_I8) return IRTYPE_I8;
 	if (descriptor->base_type == LANG_TYPE_U16 || descriptor->base_type == LANG_TYPE_I16) return IRTYPE_I16;
 
@@ -227,7 +227,7 @@ bool implicit_cast(struct CompilerContext *ctx, struct TypedValue *value, struct
 {
 	if (value->type.base_type == td->base_type && value->type.ptr_count == td->ptr_count) return true;
 
-	if (td->ptr_count > 0)
+	if (td->ptr_count > 0 || value->type.ptr_count > 0)
 	{
 		set_compiler_error("Cannot implictly cast pointer", current_token);
 		return false;
@@ -429,6 +429,12 @@ void compile_assign(struct CompilerContext *ctx, struct TypedValue *v1, struct T
 	if (v1->location == VAL_LOC_DECL)
 	{
 		define_ir_number(ctx, v2);
+		if (v2->location == VAL_LOC_VARIABLE)
+		{
+			struct IrInst *copy = ir_push_copy(ctx, v2->ir_var_number, 0);
+			lvar->ir_var_number = copy->dst_var;
+			return;
+		}
 		lvar->ir_var_number = v2->ir_var_number;
 		return;
 	}
@@ -721,7 +727,7 @@ bool compile_expression(struct CompilerContext *ctx, Token **tokens, int index, 
 			struct TypedValue value = (struct TypedValue)
 			{
 				.type = var->type,
-				.location = VAL_LOC_STACK,
+				.location = VAL_LOC_VARIABLE,
 				.token = var->name_token,
 				.ir_var_number = var->ir_var_number
 			};

@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #define PTR_WIDTH_BYTES 2
+#define PTR_IR_TYPE IRTYPE_I16
 
 enum IrBaseType
 {
