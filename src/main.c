@@ -1,5 +1,6 @@
 #include "list.h"
 #include "tokenize.h"
+#include "compiler.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -18,5 +19,8 @@ int main()
 		}
 	}
 
-	ast_tokens(&tokens);
+	struct CompilerContext ctx = compiler_create_context();
+	bool r = compile_tokens(&ctx, tokens.data, 0, tokens.size);
+
+	//ast_tokens(&tokens);
 }

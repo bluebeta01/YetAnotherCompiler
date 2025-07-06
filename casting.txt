@@ -1,0 +1,18 @@
+Implicit integer upgrading for variables:
+* Never cast signed to unsigned or vice-versa
+* The smaller integer is upgraded to the larger one
+
+Implicit integer upgrading for var and literal:
+* The literal is extended or truncated to match the var size
+* The literal value has its signed-ness changed to match the var
+* If the value of the literal cannot fit into the desiered type, error
+
+Implicit integer upgrading for literals:
+* The smaller literal is upgraded to the size of the larger literal
+* The signed-ness of the smaller literal is changed to that of the larger literal
+* If changing the signed-ness would cause the value to change, error
+
+General Notes:
+* Pointers cannot be implicitly casted to ints or vice-versa
+* Pointers cannot be implicitly casted to pointers of different base types
+* Pointers cannot be implicitly casted to pointers of different counts

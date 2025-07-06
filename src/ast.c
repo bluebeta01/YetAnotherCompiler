@@ -181,7 +181,7 @@ static TypeDescriptorParseResult parse_type_descriptor(Vector *tokens, int index
 		result.type_descriptor.base_type = BASE_TYPE_U16;
 		index++;
 		break;
-	case TOKEN_S16:
+	case TOKEN_I16:
 		result.type_descriptor.base_type = BASE_TYPE_S16;
 		index++;
 		break;

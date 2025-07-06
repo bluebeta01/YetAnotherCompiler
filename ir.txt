@@ -1,0 +1,72 @@
+types: i0 i8 i16 ptr
+
+----rules----
+* variables are always named vn
+* variables have a type that cannot be changed after being defined
+* globals have a type and are nammed gn
+----operations----
+define:
+	v0 i8 = 10
+	v0 i8 = 0xff
+	v0 i16 = 0xabcd
+	v0 ptr = 0xbeef
+	
+manipulation:
+	//Makes a copy of the variable v0
+	v1 i16 = v0
+	//Extends the i8 variable v0 with an unsigned extend and a signed extend
+	v1 i16 = uextend v0
+	v1 i16 = sextend v0
+	//Truncates the i16 variable v0 to the least significant byte
+	v1 i8 = trunc v0
+	//Turns the value v0 into a ptr. v0 may be unsign extended or truncated to the ptr width
+	v1 ptr = asptr v0
+	
+memory:
+	//Loads an i16 from the memory address v0. v0 must have type ptr
+	v1 i16 = load v0
+	//Stores the data in v1 at the memory address v1
+	store v0 v1
+	//Gets a ptr to v0
+	v1 ptr = addrof v0
+	
+arithmetic:
+	//Adds two variables. variables MUST have the same width. the returned value is also the same width
+	v2 i16 = add v0 v1
+	//Subtracts. Same rules apply. v2 = v0 - v1
+	v2 i16 = sub v0 v1
+	//Multiplies. Same rules apply
+	v2 i16 = mul v0 v1
+	
+controlflow:
+	//Conditional jumps. V0 and v1 are compared. Jump to A if the test passes, otherwise B. V0 and V1 MUST be the same width
+	jgt v0 v1 A B
+	jlt
+	jge
+	jle
+	je
+	//Unconditional jump to label
+	jmp label
+	
+
+
+:func compile_expression(v0 ptr, v1 i16, v2 i16, v3 ptr)
+v4 i8 = 1
+:while_header
+jge v1 v2 if1 else1
+:if1
+v5 i8 = 0
+ret v5
+:else1
+v6 ptr = asptr v1
+v7 ptr = add v0 v1
+v8 i16 = load v7
+v9 i16 = 10
+je v8 v9 if2 else2
+:if2
+v10 i16 = 0
+v11 i16 = g0
+v12 i16 = g1
+
+:else2
+:while_footer

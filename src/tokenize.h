@@ -16,8 +16,10 @@ typedef enum
 	TOKEN_OPEN_PAREN,
 	TOKEN_CLOSE_PAREN,
 	TOKEN_ARROW,
-	TOKEN_S16,
+	TOKEN_I16,
 	TOKEN_U16,
+	TOKEN_I8,
+	TOKEN_U8,
 	TOKEN_VOID,
 	TOKEN_BOOL,
 	TOKEN_NULL,
@@ -61,7 +63,7 @@ typedef struct
 	TokenType type;
 	int line;
 	int column;
-	bool int_signed;
+	bool is_negative;
 } Token;
 
 extern bool tokenize_file(const char *filepath, Vector *tokens);

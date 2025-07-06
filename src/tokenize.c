@@ -78,10 +78,14 @@ static TokenLookupResult token_type_lookup(const char *search_str, TokenType pre
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CMP_EQ, .token_length = length };
 	length = starts_with(search_str, "->");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_ARROW, .token_length = length };
-	length = starts_with(search_str, "s16");
-	if (length > 0) return (TokenLookupResult){ .type = TOKEN_S16, .token_length = length };
+	length = starts_with(search_str, "i16");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_I16, .token_length = length };
 	length = starts_with(search_str, "u16");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_U16, .token_length = length };
+	length = starts_with(search_str, "i8");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_I8, .token_length = length };
+	length = starts_with(search_str, "u8");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_U8, .token_length = length };
 	length = starts_with(search_str, "bool");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_BOOL, .token_length = length };
 	length = starts_with(search_str, "+");
@@ -126,12 +130,12 @@ static TokenLookupResult token_type_lookup(const char *search_str, TokenType pre
 typedef struct 
 {
 	bool success;
-	bool int_signed;
+	bool is_negative;
 	uint32_t int_literal;
 	int str_length;
 } ParseIntLiteralResult;
 
-static Token *create_token(const char *token_str, int token_str_len, TokenType type, uint64_t int_literal, bool int_signed)
+static Token *create_token(const char *token_str, int token_str_len, TokenType type, uint64_t int_literal, bool is_negative)
 {
 	char *name_str = malloc(token_str_len + 1);
 	memcpy(name_str, token_str, token_str_len);
@@ -143,7 +147,7 @@ static Token *create_token(const char *token_str, int token_str_len, TokenType t
 		.type = type,
 		.name = name_str,
 		.int_literal = int_literal,
-		.int_signed = int_signed
+		.is_negative = is_negative
 	};
 
 	return token;
@@ -154,7 +158,7 @@ static ParseIntLiteralResult parse_int_literal(const char *input)
 	ParseIntLiteralResult result = {0};
 	if (*input == '-')
 	{
-		result.int_signed = true;
+		result.is_negative = true;
 		result.str_length++;
 		input++;
 	}
@@ -165,7 +169,7 @@ static ParseIntLiteralResult parse_int_literal(const char *input)
 	result.int_literal = (uint64_t)strtol(input, &end, 0);
 	result.success = true;
 	result.str_length = end - input;
-	if (result.int_signed)
+	if (result.is_negative)
 		result.str_length++;
 
 	return result;
@@ -270,7 +274,7 @@ static bool take_token(const char *filedata, Vector *tokens)
 		if (int_result.success)
 		{
 			previous_type = TOKEN_INT;
-			Token *token = create_token(filedata, int_result.str_length, TOKEN_INT, int_result.int_literal, int_result.int_signed);
+			Token *token = create_token(filedata, int_result.str_length, TOKEN_INT, int_result.int_literal, int_result.is_negative);
 			token->line = line;
 			token->column = col;
 			col += strlen(token->name);
