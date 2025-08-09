@@ -24,16 +24,10 @@
     <ClCompile Include="src\tokenize.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ast.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\compiler.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\language.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\ir.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,16 +38,10 @@
     <ClInclude Include="src\tokenize.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ast.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\compiler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\language.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\ir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

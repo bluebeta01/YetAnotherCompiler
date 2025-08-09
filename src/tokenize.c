@@ -35,8 +35,14 @@ static TokenLookupResult token_type_lookup(const char *search_str, TokenType pre
 {
 	int length = 0;
 
+	length = is_word_token(search_str, "let");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_LET, .token_length = length };
+	length = is_word_token(search_str, "fn");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_FN, .token_length = length };
 	length = is_word_token(search_str, "continue");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_CONTINUE, .token_length = length };
+	length = is_word_token(search_str, "typedef");
+	if (length > 0) return (TokenLookupResult){ .type = TOKEN_TYPEDEF, .token_length = length };
 	length = is_word_token(search_str, "null");
 	if (length > 0) return (TokenLookupResult){ .type = TOKEN_NULL, .token_length = length };
 	length = is_word_token(search_str, "false");

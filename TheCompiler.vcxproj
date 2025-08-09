@@ -131,20 +131,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\ast.c" />
-    <ClCompile Include="src\compiler.c" />
     <ClCompile Include="src\ir.c" />
-    <ClCompile Include="src\language.c" />
     <ClCompile Include="src\list.c" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\parser.c" />
     <ClCompile Include="src\tokenize.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ast.h" />
-    <ClInclude Include="src\compiler.h" />
     <ClInclude Include="src\ir.h" />
-    <ClInclude Include="src\language.h" />
     <ClInclude Include="src\list.h" />
+    <ClInclude Include="src\parser.h" />
     <ClInclude Include="src\tokenize.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
