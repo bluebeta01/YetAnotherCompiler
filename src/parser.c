@@ -22,6 +22,7 @@ Token *error_token = NULL;
 
 ParseResult parse_declaration(Vector *tokens, int index, int *next_index, struct Declaration *decl);
 ParseResult parse_type_descriptor(Vector *tokens, int index, int *next_index, struct TypeDescriptor *td);
+ParseResult syntax_check_tree(struct AstNode *tree);
 
 void parser_error_msg(const char *msg, Token *token, ParseResult result)
 {
@@ -278,7 +279,7 @@ ParseResult parse_typedef(struct ParserContext *ctx, Vector *tokens, int index, 
 	return PR_OK;
 }
 
-// Generates the next ast node from tokens, storing it in node. Prev_node should be the previously generated node or NULL if there is none
+// Generates the next ast node from tokens, storing it in out_node. Prev_node should be the previously generated node or NULL if there is none
 ParseResult parse_node(Vector *tokens, int index, int *next_index, struct AstNode *prev_node, struct AstNode **out_node)
 {
 	Token *token = vec_at(Token *, tokens, index);
@@ -679,12 +680,109 @@ ParseResult parse_file(struct ParserContext *ctx, Vector *tokens)
 	for (int i = 0; i < ctx->functions.size; i++)
 	{
 		struct FuncDescriptor *func = &vec_at(struct FuncDescriptor, &ctx->functions, i);
+		if (!func->code_block.tree) continue;
+		ParseResult result = syntax_check_tree(func->code_block.tree);
+		if (result) return result;
+	}
+
+	for (int i = 0; i < ctx->functions.size; i++)
+	{
+		struct FuncDescriptor *func = &vec_at(struct FuncDescriptor, &ctx->functions, i);
 		pretty_print_function(func);
 	}
 
 	if (index != tokens->size)
 	{
 		return PR_EOF;
+	}
+
+	return PR_OK;
+}
+
+//Attempts to determine the type of td based on the type name. Updates td in place
+ParseResult resolve_type(struct TypeDescriptor *td)
+{
+	//TODO: do this
+	return PR_OK;
+}
+
+//Checks if an arithemtic operator node (+, *, -, etc) should perform an implicit cast on either of its children.
+//The resulting type of the arithmetic node is returned in td, and which child should be casted is returned
+//in side (0 = Neither child needs casting, 1 = Cast left child, 2 = Cast right child). Returns an error if
+//arithemtic cannot be performed on the children or if an implict cast would be illegal.
+ParseResult check_arithmetic_implicit_cast(struct AstNode *operator_node, struct TypeDescriptor *td, int *side)
+{
+	struct TypeDescriptor *ltd = &operator_node->left->type_descriptor;
+	struct TypeDescriptor *rtd = &operator_node->right->type_descriptor;
+	if (ltd->ptr_count > 0 || rtd->ptr_count > 0)
+	{
+		parser_error_msg("Pointer arithmetic is not allowed", operator_node->token, PR_SYNTAX);
+		return parse_error;
+	}
+	//TODO: finish this
+
+	return PR_OK;
+}
+
+ParseResult syntax_check_tree(struct AstNode *tree)
+{
+	ParseResult result = PR_OK;
+	if (tree->left)
+	{
+		result = syntax_check_tree(tree->left);
+		if (result) return result;
+	}
+	if (tree->right)
+	{
+		result = syntax_check_tree(tree->right);
+		if (result) return result;
+	}
+
+	switch (tree->type)
+	{
+	case AST_NODE_INVALID:
+		parser_error_msg("An invalid node was encountered while syntax checking the AST", tree->token, PR_INTERNAL_ERROR);
+		return parse_error;
+
+	case AST_NODE_SEQ:
+		break;
+
+	case AST_NODE_VALUE:
+		result = resolve_type(&tree->type_descriptor);
+		if (result) return result;
+		if (tree->left != NULL || tree->right != NULL)
+		{
+			parser_error_msg("Unexpected token", tree->token, PR_UNEXPECTED_TOKEN);
+			return parse_error;
+		}
+		break;
+
+	case AST_NODE_VAR_DECL:
+		result = resolve_type(&tree->type_descriptor);
+		if (result) return result;
+		if (tree->left != NULL || tree->right != NULL)
+		{
+			parser_error_msg("Unexpected token", tree->token, PR_UNEXPECTED_TOKEN);
+			return parse_error;
+		}
+		break;
+
+	case AST_NODE_MUL:
+	case AST_NODE_ADD:
+	case AST_NODE_SUB:
+		if (tree->left == NULL || tree->right == NULL)
+		{
+			parser_error_msg("Unexpected end of expression", tree->token, PR_SYNTAX);
+			return parse_error;
+		}
+		int side = 0;
+		result = check_arithmetic_implicit_cast(tree, &tree->type_descriptor, &side);
+		if (result) return result;
+		//TODO: finish this
+		break;
+
+	case AST_NODE_ASSIGN:
+		break;
 	}
 
 	return PR_OK;
